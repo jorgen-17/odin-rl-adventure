@@ -35,7 +35,9 @@ PIXEL_WINDOW_HEIGHT :: 180
 
 Game_Memory :: struct {
 	player_pos: rl.Vector2,
-	player_texture: rl.Texture,
+	player_idle_down: Animation,
+	player_walk_down: Animation,	
+	tree_tex: Tex,
 	some_number: int,
 	run: bool,
 }
@@ -61,7 +63,7 @@ ui_camera :: proc() -> rl.Camera2D {
 
 update :: proc() {
 	input: rl.Vector2
-
+	
 	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
 		input.y -= 1
 	}
@@ -78,9 +80,13 @@ update :: proc() {
 	input = linalg.normalize0(input)
 	g.player_pos += input * rl.GetFrameTime() * 100
 	g.some_number += 1
-
+	
 	if rl.IsKeyPressed(.ESCAPE) {
 		g.run = false
+	}
+
+	if (linalg.length(input) > 0) {
+		animation_update(&g.player_walk_down)
 	}
 }
 
@@ -89,9 +95,13 @@ draw :: proc() {
 	rl.ClearBackground(rl.BLACK)
 
 	rl.BeginMode2D(game_camera())
-	rl.DrawTextureEx(g.player_texture, g.player_pos, 0, 1, rl.WHITE)
-	rl.DrawRectangleV({20, 20}, {10, 10}, rl.RED)
-	rl.DrawRectangleV({-30, -20}, {10, 10}, rl.GREEN)
+	rl.DrawTextureRec(g.tree_tex, Rect{
+		x = 0,
+		y = 0,
+		width = f32(g.tree_tex.width / 4),
+		height = f32(g.tree_tex.height) / f32(2.3),
+	}, {5, 5}, rl.WHITE)
+	animation_draw(g.player_walk_down, g.player_pos)
 	rl.EndMode2D()
 
 	rl.BeginMode2D(ui_camera())
@@ -134,7 +144,12 @@ game_init :: proc() {
 
 		// You can put textures, sounds and music in the `assets` folder. Those
 		// files will be part any release or web build.
-		player_texture = rl.LoadTexture("assets/round_cat.png"),
+		player_idle_down = animation_create(
+			rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Down-Sheet.png"), 4),
+		player_walk_down = animation_create(
+			rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Down-Sheet.png"), 6),
+
+		tree_tex = rl.LoadTexture("assets/Environment/Props/Static/Trees/Model_01/Size_05.png"),
 	}
 
 	game_hot_reloaded(g)
@@ -154,6 +169,8 @@ game_should_run :: proc() -> bool {
 
 @(export)
 game_shutdown :: proc() {
+	rl.UnloadTexture(g.player_idle_down.texture)	
+	rl.UnloadTexture(g.player_walk_down.texture)	
 	free(g)
 }
 

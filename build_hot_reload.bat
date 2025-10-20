@@ -60,7 +60,7 @@ echo Building %EXE%
 odin build source\main_hot_reload -strict-style -vet -debug -out:%EXE% -pdb-name:%OUT_DIR%\main_hot_reload.pdb
 IF %ERRORLEVEL% NEQ 0 exit /b 1
 
-set ODIN_PATH=
+set ODIN_PATH="C:\odin"
 for /f "delims=" %%i in ('odin root') do set "ODIN_PATH=%%i"
 
 if not exist "raylib.dll" (
