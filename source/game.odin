@@ -29,6 +29,7 @@ package game
 
 import "core:fmt"
 import "core:math/linalg"
+import "core:slice"
 import rl "vendor:raylib"
 
 PIXEL_WINDOW_HEIGHT :: 180
@@ -37,11 +38,14 @@ Game_Memory :: struct {
 	player_pos: rl.Vector2,
 	player_idle_down: Animation,
 	player_walk_down: Animation,	
-	tree_tex: Tex,
+	tree_tex: Texture,
+	drawables: DrawableArray,
 	some_number: int,
 	run: bool,
+	debug_draw: bool,
 }
 
+@(private="file")
 g: ^Game_Memory
 
 game_camera :: proc() -> rl.Camera2D {
@@ -63,6 +67,7 @@ ui_camera :: proc() -> rl.Camera2D {
 
 update :: proc() {
 	input: rl.Vector2
+	drawables_reset()
 	
 	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
 		input.y -= 1
@@ -84,6 +89,9 @@ update :: proc() {
 	if rl.IsKeyPressed(.ESCAPE) {
 		g.run = false
 	}
+	if rl.IsKeyPressed(.F2) {
+		g.debug_draw = !g.debug_draw
+	}
 
 	if (linalg.length(input) > 0) {
 		animation_update(&g.player_walk_down)
@@ -95,13 +103,61 @@ draw :: proc() {
 	rl.ClearBackground(rl.BLACK)
 
 	rl.BeginMode2D(game_camera())
-	rl.DrawTextureRec(g.tree_tex, Rect{
+	draw_texture(g.tree_tex,  Rect{
 		x = 0,
 		y = 0,
 		width = f32(g.tree_tex.width / 4),
 		height = f32(g.tree_tex.height) / f32(2.3),
-	}, {5, 5}, rl.WHITE)
+	}, Vec2{5, 5})
 	animation_draw(g.player_walk_down, g.player_pos)
+
+	all_drawables := drawables_slice()
+	slice.sort_by(all_drawables, proc(i, j: Drawable) -> bool {
+		iy, jy: f32
+
+		switch d in i {
+			case DrawableTexture:
+				iy = d.pos.y
+			case DrawableRect:
+		}
+		switch d in j {
+			case DrawableTexture:
+				jy = d.pos.y
+			case DrawableRect:
+		}
+
+		return iy < jy
+	})
+	for drawable in all_drawables {
+		switch d in drawable {
+			case DrawableTexture:
+				offset: Vec2
+
+				if d.source.width == 0 || d.source.height == 0 {
+					switch d.origin {
+						case .Center:
+							offset = {f32(-d.tex.width)/2, f32(-d.tex.height)/2}
+						case .BottomCenter:
+							offset = {f32(-d.tex.width)/2, f32(-d.tex.height)}
+					}
+					rl.DrawTextureV(d.tex, d.pos + offset, rl.WHITE)
+				} else {
+					switch d.origin {
+						case .Center:
+							offset = {f32(-d.source.width)/2, f32(-d.source.height)/2}
+						case .BottomCenter:
+							offset = {f32(-d.source.width)/2, f32(-d.source.height)}
+					}
+					rl.DrawTextureRec(d.tex, d.source, d.pos + offset, rl.WHITE)
+				}
+
+				if g.debug_draw {
+					rl.DrawCircleV(d.pos, 5, rl.YELLOW)
+				}
+			case DrawableRect:
+		}
+	}
+
 	rl.EndMode2D()
 
 	rl.BeginMode2D(ui_camera())
@@ -140,6 +196,7 @@ game_init :: proc() {
 
 	g^ = Game_Memory {
 		run = true,
+		debug_draw = false,
 		some_number = 100,
 
 		// You can put textures, sounds and music in the `assets` folder. Those
@@ -193,6 +250,7 @@ game_memory_size :: proc() -> int {
 game_hot_reloaded :: proc(mem: rawptr) {
 	g = (^Game_Memory)(mem)
 
+	drawables_init(&g.drawables)
 	// Here you can also set your own global variables. A good idea is to make
 	// your global variables into pointers that point to something inside `g`.
 }

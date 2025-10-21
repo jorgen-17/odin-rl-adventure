@@ -4,13 +4,13 @@ import rl "vendor:raylib"
 import "core:log"
 
 Animation :: struct {
-    texture: Tex,
+    texture: Texture,
     num_frames: int,
     current_frame: int,
     frame_timer: f32,
 }
 
-animation_create :: proc(tex: Tex, num_frames: int) -> Animation {
+animation_create :: proc(tex: Texture, num_frames: int) -> Animation {
     return Animation {
         texture = tex,
         num_frames = num_frames,
@@ -48,5 +48,5 @@ animation_draw :: proc(a: Animation, pos: Vec2) {
         height = height,
     }
 
-    rl.DrawTextureRec(a.texture, source, pos, rl.WHITE)
+    draw_texture(a.texture, source, pos)
 }

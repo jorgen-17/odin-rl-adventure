@@ -2,10 +2,10 @@ package game
 
 import rl "vendor:raylib"
 
-Tex :: rl.Texture
+Texture :: rl.Texture
 Color :: rl.Color
 
-texture_rect :: proc(tex: Tex, flip_x: bool) -> Rect {
+texture_rect :: proc(tex: Texture, flip_x: bool) -> Rect {
 	return {
 		x = 0,
 		y = 0,
