@@ -55,7 +55,7 @@ game_camera :: proc() -> rl.Camera2D {
 	return {
 		zoom = h/PIXEL_WINDOW_HEIGHT,
 		target = g.player_pos,
-		offset = { w/2, h/2 },
+		offset = { w/2 , h/2 + (2 * f32(g.player_walk_down.texture.height)) },
 	}
 }
 
@@ -100,7 +100,7 @@ update :: proc() {
 
 draw :: proc() {
 	rl.BeginDrawing()
-	rl.ClearBackground(rl.BLACK)
+	rl.ClearBackground(rl.DARKGREEN)
 
 	rl.BeginMode2D(game_camera())
 	draw_texture(g.tree_tex,  Rect{
@@ -108,7 +108,13 @@ draw :: proc() {
 		y = 0,
 		width = f32(g.tree_tex.width / 4),
 		height = f32(g.tree_tex.height) / f32(2.3),
-	}, Vec2{5, 5})
+	}, Vec2{75, 0})
+	draw_texture(g.tree_tex,  Rect{
+		x = 0,
+		y = 0,
+		width = f32(g.tree_tex.width / 4),
+		height = f32(g.tree_tex.height) / f32(2.3),
+	}, Vec2{-75, 0})
 	animation_draw(g.player_walk_down, g.player_pos)
 
 	all_drawables := drawables_slice()
@@ -131,25 +137,15 @@ draw :: proc() {
 	for drawable in all_drawables {
 		switch d in drawable {
 			case DrawableTexture:
-				offset: Vec2
-
-				if d.source.width == 0 || d.source.height == 0 {
-					switch d.origin {
-						case .Center:
-							offset = {f32(-d.tex.width)/2, f32(-d.tex.height)/2}
-						case .BottomCenter:
-							offset = {f32(-d.tex.width)/2, f32(-d.tex.height)}
-					}
-					rl.DrawTextureV(d.tex, d.pos + offset, rl.WHITE)
-				} else {
-					switch d.origin {
-						case .Center:
-							offset = {f32(-d.source.width)/2, f32(-d.source.height)/2}
-						case .BottomCenter:
-							offset = {f32(-d.source.width)/2, f32(-d.source.height)}
-					}
-					rl.DrawTextureRec(d.tex, d.source, d.pos + offset, rl.WHITE)
+				source:= d.source
+				if source.width == 0 {
+					source.width = f32(d.tex.width)
 				}
+				if source.height == 0 {
+					source.height = f32(d.tex.height)
+				}
+
+				rl.DrawTextureRec(d.tex, source, d.pos + d.offset, rl.WHITE)
 
 				if g.debug_draw {
 					rl.DrawCircleV(d.pos, 5, rl.YELLOW)

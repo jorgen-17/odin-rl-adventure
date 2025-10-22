@@ -8,12 +8,14 @@ Animation :: struct {
     num_frames: int,
     current_frame: int,
     frame_timer: f32,
+    origin: DrawableOrigin,
 }
 
-animation_create :: proc(tex: Texture, num_frames: int) -> Animation {
+animation_create :: proc(tex: Texture, num_frames: int, origin: DrawableOrigin = .BottomCenter) -> Animation {
     return Animation {
         texture = tex,
         num_frames = num_frames,
+        origin = origin
     }
 }
 
@@ -48,5 +50,5 @@ animation_draw :: proc(a: Animation, pos: Vec2) {
         height = height,
     }
 
-    draw_texture(a.texture, source, pos)
+    draw_texture(a.texture, source, pos, a.origin)
 }

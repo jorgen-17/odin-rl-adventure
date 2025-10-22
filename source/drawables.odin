@@ -14,7 +14,7 @@ DrawableTexture :: struct {
     tex: Texture,
     source: Rect,
     pos: Vec2,
-    origin: DrawableOrigin,
+    offset: Vec2,
 }
 
 Drawable :: union {
@@ -52,20 +52,35 @@ add_drawable :: proc (d: Drawable) {
 }
 
 draw_texture_rec :: proc (tex: Texture, source: Rect, pos: Vec2, origin: DrawableOrigin = .BottomCenter) {
+    offset := get_texture_offset(source, origin)
     add_drawable(DrawableTexture {
         tex = tex,
         source = source,
         pos = pos,
-        origin = origin,
+        offset = offset,
     })
 }
 
 draw_texture_pos :: proc (tex: Texture, pos: Vec2, origin: DrawableOrigin = .BottomCenter) {
+    offset := get_texture_offset({pos.x, pos.y, f32(tex.width), f32(tex.height)}, origin)
     add_drawable(DrawableTexture {
         tex = tex,
         pos = pos,
-        origin = origin,
+        offset = offset,
     })
 }
 
 draw_texture :: proc { draw_texture_rec, draw_texture_pos }
+
+@(private="file")
+get_texture_offset :: proc (source: Rect, origin: DrawableOrigin) -> Vec2 {
+	offset: Vec2
+    switch origin {
+		case .Center:
+			offset = {f32(-source.width)/2, f32(-source.height)/2}
+		case .BottomCenter:
+			offset = {f32(-source.width)/2, f32(-source.height)}
+	}
+
+    return offset
+}
