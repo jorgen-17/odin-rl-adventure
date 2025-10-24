@@ -1,30 +1,3 @@
-/*
-This file is the starting point of your game.
-
-Some important procedures are:
-- game_init_window: Opens the window
-- game_init: Sets up the game state
-- game_update: Run once per frame
-- game_should_close: For stopping your game when close button is pressed
-- game_shutdown: Shuts down game and frees memory
-- game_shutdown_window: Closes window
-
-The procs above are used regardless if you compile using the `build_release`
-script or the `build_hot_reload` script. However, in the hot reload case, the
-contents of this file is compiled as part of `build/hot_reload/game.dll` (or
-.dylib/.so on mac/linux). In the hot reload cases some other procedures are
-also used in order to facilitate the hot reload functionality:
-
-- game_memory: Run just before a hot reload. That way game_hot_reload.exe has a
-	pointer to the game's memory that it can hand to the new game DLL.
-- game_hot_reloaded: Run after a hot reload so that the `g` global
-	variable can be set to whatever pointer it was in the old DLL.
-
-NOTE: When compiled as part of `build_release`, `build_debug` or `build_web`
-then this whole package is just treated as a normal Odin package. No DLL is
-created.
-*/
-
 package game
 
 import "core:fmt"
@@ -35,9 +8,8 @@ import rl "vendor:raylib"
 PIXEL_WINDOW_HEIGHT :: 180
 
 Game_Memory :: struct {
-	player_pos: rl.Vector2,
-	player_idle_down: Animation,
-	player_walk_down: Animation,	
+	player: Player,
+	knight_idle: Animation,
 	tree_tex: Texture,
 	drawables: DrawableArray,
 	some_number: int,
@@ -54,8 +26,8 @@ game_camera :: proc() -> rl.Camera2D {
 
 	return {
 		zoom = h/PIXEL_WINDOW_HEIGHT,
-		target = g.player_pos,
-		offset = { w/2 , h/2 + (2 * f32(g.player_walk_down.texture.height)) },
+		target = g.player.pos,
+		offset = { w/2 , h/2 + (2 * f32(g.player.walk_down.texture.height)) },
 	}
 }
 
@@ -71,19 +43,23 @@ update :: proc() {
 	
 	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
 		input.y -= 1
+		g.player.direction = .UP
 	}
 	if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
 		input.y += 1
+		g.player.direction = .DOWN
 	}
 	if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
 		input.x -= 1
+		g.player.direction = .LEFT
 	}
 	if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
 		input.x += 1
+		g.player.direction = .RIGHT
 	}
 
 	input = linalg.normalize0(input)
-	g.player_pos += input * rl.GetFrameTime() * 100
+	g.player.pos += input * rl.GetFrameTime() * 100
 	g.some_number += 1
 	
 	if rl.IsKeyPressed(.ESCAPE) {
@@ -94,8 +70,27 @@ update :: proc() {
 	}
 
 	if (linalg.length(input) > 0) {
-		animation_update(&g.player_walk_down)
+		switch g.player.direction {
+			case .DOWN:
+				animation_update(&g.player.walk_down)
+			case .UP:
+				animation_update(&g.player.walk_up)
+			case .RIGHT, .LEFT:
+				animation_update(&g.player.walk_right)
+		}
+		g.player.action = .Walking
+	} else {
+		switch g.player.direction {
+			case .DOWN:
+				animation_update(&g.player.idle_down)
+			case .UP:
+				animation_update(&g.player.idle_up)
+			case .RIGHT, .LEFT:
+				animation_update(&g.player.idle_right)
+		}
+		g.player.action = .Idle
 	}
+	animation_update(&g.knight_idle)
 }
 
 draw :: proc() {
@@ -115,7 +110,33 @@ draw :: proc() {
 		width = f32(g.tree_tex.width / 4),
 		height = f32(g.tree_tex.height) / f32(2.3),
 	}, Vec2{-75, 0})
-	animation_draw(g.player_walk_down, g.player_pos)
+
+	switch g.player.action {
+		case .Idle:
+			switch g.player.direction {
+				case .DOWN:
+					animation_draw(g.player.idle_down, g.player.pos)
+				case .UP:
+					animation_draw(g.player.idle_up, g.player.pos)
+				case .RIGHT:
+					animation_draw(g.player.idle_right, g.player.pos)
+				case .LEFT:
+					animation_draw(g.player.idle_right, g.player.pos, true)
+			}
+		case .Walking:
+			switch g.player.direction {
+				case .DOWN:
+					animation_draw(g.player.idle_down, g.player.pos)
+				case .UP:
+					animation_draw(g.player.idle_up, g.player.pos)
+				case .RIGHT:
+					animation_draw(g.player.idle_right, g.player.pos)
+				case .LEFT:
+					animation_draw(g.player.idle_right, g.player.pos, true)
+			}
+	}
+
+	animation_draw(g.knight_idle, {-80, 10})
 
 	all_drawables := drawables_slice()
 	slice.sort_by(all_drawables, proc(i, j: Drawable) -> bool {
@@ -151,6 +172,11 @@ draw :: proc() {
 					rl.DrawCircleV(d.pos, 5, rl.YELLOW)
 				}
 			case DrawableRect:
+				rl.DrawRectangleRec(d.rect, d.color)
+
+				if g.debug_draw {
+					rl.DrawCircleV({d.rect.x, d.rect.y}, 5, rl.YELLOW)
+				}
 		}
 	}
 
@@ -161,7 +187,7 @@ draw :: proc() {
 	// NOTE: `fmt.ctprintf` uses the temp allocator. The temp allocator is
 	// cleared at the end of the frame by the main application, meaning inside
 	// `main_hot_reload.odin`, `main_release.odin` or `main_web_entry.odin`.
-	rl.DrawText(fmt.ctprintf("some_number: %v\nplayer_pos: %v", g.some_number, g.player_pos), 5, 5, 8, rl.WHITE)
+	rl.DrawText(fmt.ctprintf("some_number: %v\nplayer_pos: %v", g.some_number, g.player.pos), 5, 5, 8, rl.WHITE)
 
 	rl.EndMode2D()
 
@@ -197,10 +223,26 @@ game_init :: proc() {
 
 		// You can put textures, sounds and music in the `assets` folder. Those
 		// files will be part any release or web build.
-		player_idle_down = animation_create(
-			rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Down-Sheet.png"), 4),
-		player_walk_down = animation_create(
-			rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Down-Sheet.png"), 6),
+		player = Player {
+			action = .Idle,
+			direction = .DOWN,
+
+			idle_down = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Down-Sheet.png"), 4),
+			idle_up = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Up-Sheet.png"), 4),
+			idle_right = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Side-Sheet.png"), 4),
+
+			walk_down = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Down-Sheet.png"), 6),
+			walk_up = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Up-Sheet.png"), 6),
+			walk_right = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Side-Sheet.png"), 6),
+		},
+
+		knight_idle = animation_create(rl.LoadTexture("assets/Entities/Npc's/Knight/Idle/Idle-Sheet.png"), 4),
 
 		tree_tex = rl.LoadTexture("assets/Environment/Props/Static/Trees/Model_01/Size_05.png"),
 	}
@@ -222,8 +264,12 @@ game_should_run :: proc() -> bool {
 
 @(export)
 game_shutdown :: proc() {
-	rl.UnloadTexture(g.player_idle_down.texture)	
-	rl.UnloadTexture(g.player_walk_down.texture)	
+	rl.UnloadTexture(g.player.idle_down.texture)
+	rl.UnloadTexture(g.player.idle_up.texture)
+	rl.UnloadTexture(g.player.idle_right.texture)
+	rl.UnloadTexture(g.player.walk_down.texture)
+	rl.UnloadTexture(g.player.walk_up.texture)
+	rl.UnloadTexture(g.player.walk_right.texture)
 	free(g)
 }
 

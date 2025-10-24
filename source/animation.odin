@@ -33,7 +33,7 @@ animation_update :: proc(a: ^Animation) {
     
 }
 
-animation_draw :: proc(a: Animation, pos: Vec2) {
+animation_draw :: proc(a: Animation, pos: Vec2, flip_x: bool = false) {
     if a.num_frames == 0 {
         log.error("animation has 0 frames")
         return
@@ -43,6 +43,8 @@ animation_draw :: proc(a: Animation, pos: Vec2) {
     height := f32(a.texture.height)
 
     frame_width := width / f32(a.num_frames)
+    // flipper : f32 = flip_x ? -1.0 : 1.0
+    // rect_width := flipper * frame_width
     source := Rect{
         x = f32(a.current_frame) * frame_width,
         y = 0,

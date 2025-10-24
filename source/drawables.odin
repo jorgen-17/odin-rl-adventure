@@ -8,6 +8,8 @@ DrawableOrigin :: enum {
 }
 
 DrawableRect :: struct {
+    rect: Rect,
+    color: Color,
 }
 
 DrawableTexture :: struct {
@@ -70,8 +72,6 @@ draw_texture_pos :: proc (tex: Texture, pos: Vec2, origin: DrawableOrigin = .Bot
     })
 }
 
-draw_texture :: proc { draw_texture_rec, draw_texture_pos }
-
 @(private="file")
 get_texture_offset :: proc (source: Rect, origin: DrawableOrigin) -> Vec2 {
 	offset: Vec2
@@ -83,4 +83,13 @@ get_texture_offset :: proc (source: Rect, origin: DrawableOrigin) -> Vec2 {
 	}
 
     return offset
+}
+
+draw_texture :: proc { draw_texture_rec, draw_texture_pos }
+
+draw_rect :: proc (rect: Rect, color: Color) {
+    add_drawable(DrawableRect {
+        rect = rect,
+        color = color,
+    })
 }
