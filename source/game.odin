@@ -127,13 +127,13 @@ draw :: proc() {
 		case .Walking:
 			switch g.player.direction {
 				case .DOWN:
-					animation_draw(g.player.idle_down, g.player.pos)
+					animation_draw(g.player.walk_down, g.player.pos)
 				case .UP:
-					animation_draw(g.player.idle_up, g.player.pos)
+					animation_draw(g.player.walk_up, g.player.pos)
 				case .RIGHT:
-					animation_draw(g.player.idle_right, g.player.pos)
+					animation_draw(g.player.walk_right, g.player.pos)
 				case .LEFT:
-					animation_draw(g.player.idle_right, g.player.pos, true)
+					animation_draw(g.player.walk_right, g.player.pos, true)
 			}
 	}
 
