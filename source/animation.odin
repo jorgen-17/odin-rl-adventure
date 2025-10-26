@@ -43,14 +43,14 @@ animation_draw :: proc(a: Animation, pos: Vec2, flip_x: bool = false) {
     height := f32(a.texture.height)
 
     frame_width := width / f32(a.num_frames)
-    // flipper : f32 = flip_x ? -1.0 : 1.0
-    // rect_width := flipper * frame_width
+    flipper : f32 = flip_x ? -1.0 : 1.0
+    rect_width := flipper * frame_width
     source := Rect{
         x = f32(a.current_frame) * frame_width,
         y = 0,
-        width = frame_width,
+        width = rect_width,
         height = height,
     }
 
-    draw_texture(a.texture, source, pos, a.origin)
+    draw_texture(a.texture, source, pos, a.origin, flip_x)
 }

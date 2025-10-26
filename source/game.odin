@@ -98,6 +98,7 @@ draw :: proc() {
 	rl.ClearBackground(rl.DARKGREEN)
 
 	rl.BeginMode2D(game_camera())
+
 	draw_texture(g.tree_tex,  Rect{
 		x = 0,
 		y = 0,

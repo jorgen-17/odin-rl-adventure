@@ -53,8 +53,13 @@ add_drawable :: proc (d: Drawable) {
     num_drawables += 1
 }
 
-draw_texture_rec :: proc (tex: Texture, source: Rect, pos: Vec2, origin: DrawableOrigin = .BottomCenter) {
-    offset := get_texture_offset(source, origin)
+draw_texture_rec :: proc (
+    tex: Texture,
+    source: Rect,
+    pos: Vec2,
+    origin: DrawableOrigin = .BottomCenter,
+    flip_x: bool = false) {
+    offset := get_texture_offset(source, origin, flip_x)
     add_drawable(DrawableTexture {
         tex = tex,
         source = source,
@@ -63,8 +68,12 @@ draw_texture_rec :: proc (tex: Texture, source: Rect, pos: Vec2, origin: Drawabl
     })
 }
 
-draw_texture_pos :: proc (tex: Texture, pos: Vec2, origin: DrawableOrigin = .BottomCenter) {
-    offset := get_texture_offset({pos.x, pos.y, f32(tex.width), f32(tex.height)}, origin)
+draw_texture_pos :: proc (
+    tex: Texture,
+    pos: Vec2,
+    origin: DrawableOrigin = .BottomCenter,
+    flip_x: bool = false) {
+    offset := get_texture_offset({pos.x, pos.y, f32(tex.width), f32(tex.height)}, origin, flip_x)
     add_drawable(DrawableTexture {
         tex = tex,
         pos = pos,
@@ -73,13 +82,14 @@ draw_texture_pos :: proc (tex: Texture, pos: Vec2, origin: DrawableOrigin = .Bot
 }
 
 @(private="file")
-get_texture_offset :: proc (source: Rect, origin: DrawableOrigin) -> Vec2 {
+get_texture_offset :: proc (source: Rect, origin: DrawableOrigin, flip_x: bool = false) -> Vec2 {
 	offset: Vec2
+    flipper : f32 = flip_x ? -1.0 : 1.0
     switch origin {
 		case .Center:
-			offset = {f32(-source.width)/2, f32(-source.height)/2}
+			offset = {flipper*f32(-source.width)/2, f32(-source.height)/2}
 		case .BottomCenter:
-			offset = {f32(-source.width)/2, f32(-source.height)}
+			offset = {flipper*f32(-source.width)/2, f32(-source.height)}
 	}
 
     return offset
