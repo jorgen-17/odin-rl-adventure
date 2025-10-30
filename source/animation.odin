@@ -11,9 +11,9 @@ Animation :: struct {
     origin: DrawableOrigin,
 }
 
-animation_create :: proc(tex: Texture, num_frames: int, origin: DrawableOrigin = .BottomCenter) -> Animation {
+animation_create :: proc(texture: Texture, num_frames: int, origin: DrawableOrigin = .BottomCenter) -> Animation {
     return Animation {
-        texture = tex,
+        texture = texture,
         num_frames = num_frames,
         origin = origin
     }
@@ -23,7 +23,7 @@ animation_update :: proc(a: ^Animation) {
     a.frame_timer -= rl.GetFrameTime()
     
     if a.frame_timer <= 0 {
-        a.frame_timer = 0.1
+        a.frame_timer = 0.12
         a.current_frame += 1
 
         if a.current_frame >= a.num_frames {

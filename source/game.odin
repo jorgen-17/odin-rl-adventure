@@ -7,11 +7,16 @@ import rl "vendor:raylib"
 
 PIXEL_WINDOW_HEIGHT :: 180
 
+NPC :: struct {
+	animation: Animation,
+	pos: Vec2,
+}
+
 Game_Memory :: struct {
 	player: Player,
-	knight_idle: Animation,
-	tree_tex: Texture,
+	tree_texture: Texture,
 	drawables: DrawableArray,
+	npcs: HandleArray(NPC, 128),
 	some_number: int,
 	run: bool,
 	debug_draw: bool,
@@ -90,7 +95,11 @@ update :: proc() {
 		}
 		g.player.action = .Idle
 	}
-	animation_update(&g.knight_idle)
+
+	npcs_iter := ha_make_iter(&g.npcs)
+	for npc in ha_iter(&npcs_iter) {
+		animation_update(&npc.animation)
+	}
 }
 
 draw :: proc() {
@@ -99,17 +108,17 @@ draw :: proc() {
 
 	rl.BeginMode2D(game_camera())
 
-	draw_texture(g.tree_tex,  Rect{
+	draw_texture(g.tree_texture,  Rect{
 		x = 0,
 		y = 0,
-		width = f32(g.tree_tex.width / 4),
-		height = f32(g.tree_tex.height) / f32(2.3),
+		width = f32(g.tree_texture.width / 4),
+		height = f32(g.tree_texture.height) / f32(2.3),
 	}, Vec2{75, 0})
-	draw_texture(g.tree_tex,  Rect{
+	draw_texture(g.tree_texture,  Rect{
 		x = 0,
 		y = 0,
-		width = f32(g.tree_tex.width / 4),
-		height = f32(g.tree_tex.height) / f32(2.3),
+		width = f32(g.tree_texture.width / 4),
+		height = f32(g.tree_texture.height) / f32(2.3),
 	}, Vec2{-75, 0})
 
 	switch g.player.action {
@@ -137,7 +146,10 @@ draw :: proc() {
 			}
 	}
 
-	animation_draw(g.knight_idle, {-80, 10})
+	npcs_iter := ha_make_iter(&g.npcs)
+	for npc in ha_iter(&npcs_iter) {
+		animation_draw(npc.animation, npc.pos)
+	}
 
 	all_drawables := drawables_slice()
 	slice.sort_by(all_drawables, proc(i, j: Drawable) -> bool {
@@ -161,13 +173,13 @@ draw :: proc() {
 			case DrawableTexture:
 				source:= d.source
 				if source.width == 0 {
-					source.width = f32(d.tex.width)
+					source.width = f32(d.texture.width)
 				}
 				if source.height == 0 {
-					source.height = f32(d.tex.height)
+					source.height = f32(d.texture.height)
 				}
 
-				rl.DrawTextureRec(d.tex, source, d.pos + d.offset, rl.WHITE)
+				rl.DrawTextureRec(d.texture, source, d.pos + d.offset, rl.WHITE)
 
 				if g.debug_draw {
 					rl.DrawCircleV(d.pos, 5, rl.YELLOW)
@@ -243,10 +255,15 @@ game_init :: proc() {
 				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Side-Sheet.png"), 6),
 		},
 
-		knight_idle = animation_create(rl.LoadTexture("assets/Entities/Npc's/Knight/Idle/Idle-Sheet.png"), 4),
-
-		tree_tex = rl.LoadTexture("assets/Environment/Props/Static/Trees/Model_01/Size_05.png"),
+		tree_texture = rl.LoadTexture("assets/Environment/Props/Static/Trees/Model_01/Size_05.png"),
 	}
+
+	knight := NPC {
+		animation = animation_create(rl.LoadTexture("assets/Entities/Npc's/Knight/Idle/Idle-Sheet.png"), 4),
+		pos = {-80, 10},
+	}
+
+	ha_add(&g.npcs, knight)
 
 	game_hot_reloaded(g)
 }
@@ -271,6 +288,12 @@ game_shutdown :: proc() {
 	rl.UnloadTexture(g.player.walk_down.texture)
 	rl.UnloadTexture(g.player.walk_up.texture)
 	rl.UnloadTexture(g.player.walk_right.texture)
+
+	npcs_iter := ha_make_iter(&g.npcs)
+	for npc in ha_iter(&npcs_iter) {
+		rl.UnloadTexture(npc.animation.texture)
+	}
+
 	free(g)
 }
 

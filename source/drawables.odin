@@ -13,7 +13,7 @@ DrawableRect :: struct {
 }
 
 DrawableTexture :: struct {
-    tex: Texture,
+    texture: Texture,
     source: Rect,
     pos: Vec2,
     offset: Vec2,
@@ -54,14 +54,14 @@ add_drawable :: proc (d: Drawable) {
 }
 
 draw_texture_rec :: proc (
-    tex: Texture,
+    texture: Texture,
     source: Rect,
     pos: Vec2,
     origin: DrawableOrigin = .BottomCenter,
     flip_x: bool = false) {
     offset := get_texture_offset(source, origin, flip_x)
     add_drawable(DrawableTexture {
-        tex = tex,
+        texture = texture,
         source = source,
         pos = pos,
         offset = offset,
@@ -75,7 +75,7 @@ draw_texture_pos :: proc (
     flip_x: bool = false) {
     offset := get_texture_offset({pos.x, pos.y, f32(tex.width), f32(tex.height)}, origin, flip_x)
     add_drawable(DrawableTexture {
-        tex = tex,
+        texture = tex,
         pos = pos,
         offset = offset,
     })
