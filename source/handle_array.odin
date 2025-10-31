@@ -104,7 +104,7 @@ ha_make_iter :: proc(a: ^HandleArray($T, $N)) -> HandleArrayIter(T, N) {
 	return HandleArrayIter(T, N) { a = a }
 }
 
-ha_iter :: proc(it: ^HandleArrayIter($T, $N)) -> (val: ^T, h: Handle(T), cond: bool) {
+ha_iter :: proc(it: ^HandleArrayIter($T, $N)) -> (val: T, h: Handle(T), cond: bool) {
 	cond = it.index < int(it.a.num_items)
 
 	for ; cond; cond = it.index < int(it.a.num_items) {
@@ -113,7 +113,7 @@ ha_iter :: proc(it: ^HandleArrayIter($T, $N)) -> (val: ^T, h: Handle(T), cond: b
 			continue
 		}
 
-		val = &it.a.items[it.index].item
+		val = it.a.items[it.index].item
 		h = it.a.items[it.index].handle
 		it.index += 1
 		break

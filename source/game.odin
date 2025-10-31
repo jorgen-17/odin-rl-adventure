@@ -12,11 +12,21 @@ NPC :: struct {
 	pos: Vec2,
 }
 
+Icon :: struct {
+	texture: Texture,
+	pos: Vec2,
+}
+
+Icons :: struct {
+	speech_bubble: Icon
+}
+
 Game_Memory :: struct {
 	player: Player,
 	tree_texture: Texture,
 	drawables: DrawableArray,
 	npcs: HandleArray(NPC, 128),
+	icons: Icons,
 	some_number: int,
 	run: bool,
 	debug_draw: bool,
@@ -97,7 +107,7 @@ update :: proc() {
 	}
 
 	npcs_iter := ha_make_iter(&g.npcs)
-	for npc in ha_iter(&npcs_iter) {
+	for npc in ha_iter_ptr(&npcs_iter) {
 		animation_update(&npc.animation)
 	}
 }
@@ -146,9 +156,23 @@ draw :: proc() {
 			}
 	}
 
+	TalkMaxDistance :: 32
+	nearest_distance_to_player := max(f32)
+	nearest_npc_handle: Handle(NPC)
+
 	npcs_iter := ha_make_iter(&g.npcs)
-	for npc in ha_iter(&npcs_iter) {
+	for npc, handle_npc in ha_iter(&npcs_iter) {
+		distance_to_player := linalg.length(npc.pos - g.player.pos)
+		if distance_to_player < nearest_distance_to_player && distance_to_player < TalkMaxDistance {
+			nearest_npc_handle = handle_npc
+			nearest_distance_to_player = distance_to_player
+		}
 		animation_draw(npc.animation, npc.pos)
+	}
+
+	if nearest_distance_to_player < TalkMaxDistance {
+		nearest_npc, _ := ha_get(g.npcs, nearest_npc_handle)
+		draw_texture(g.icons.speech_bubble.texture, (nearest_npc.pos + { 0.0, -30.0 }))
 	}
 
 	all_drawables := drawables_slice()
@@ -256,6 +280,13 @@ game_init :: proc() {
 		},
 
 		tree_texture = rl.LoadTexture("assets/Environment/Props/Static/Trees/Model_01/Size_05.png"),
+
+		icons = Icons {
+			speech_bubble = Icon {
+				texture = rl.LoadTexture("assets/Icons/speech_bubble.png"),
+				pos = { 0.0, 0.0 },
+			},
+		},
 	}
 
 	knight := NPC {
