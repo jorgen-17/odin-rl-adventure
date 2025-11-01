@@ -15,6 +15,7 @@ NPC :: struct {
 Icon :: struct {
 	texture: Texture,
 	pos: Vec2,
+	z: int,
 }
 
 Icons :: struct {
@@ -118,13 +119,13 @@ draw :: proc() {
 
 	rl.BeginMode2D(game_camera())
 
-	draw_texture(g.tree_texture,  Rect{
+	draw_texture_rec(g.tree_texture,  Rect{
 		x = 0,
 		y = 0,
 		width = f32(g.tree_texture.width / 4),
 		height = f32(g.tree_texture.height) / f32(2.3),
 	}, Vec2{75, 0})
-	draw_texture(g.tree_texture,  Rect{
+	draw_texture_rec(g.tree_texture,  Rect{
 		x = 0,
 		y = 0,
 		width = f32(g.tree_texture.width / 4),
@@ -172,25 +173,32 @@ draw :: proc() {
 
 	if nearest_distance_to_player < TalkMaxDistance {
 		nearest_npc, _ := ha_get(g.npcs, nearest_npc_handle)
-		draw_texture(g.icons.speech_bubble.texture, (nearest_npc.pos + { 0.0, -30.0 }))
+		draw_texture_pos(g.icons.speech_bubble.texture, (nearest_npc.pos + { 0.0, -30.0 }), g.icons.speech_bubble.z)
 	}
 
 	all_drawables := drawables_slice()
 	slice.sort_by(all_drawables, proc(i, j: Drawable) -> bool {
 		iy, jy: f32
+		iz, jz: int
 
 		switch d in i {
 			case DrawableTexture:
 				iy = d.pos.y
+				iz = d.z
 			case DrawableRect:
+				iy = d.rect.y
+				iz = d.z
 		}
 		switch d in j {
 			case DrawableTexture:
 				jy = d.pos.y
+				jz = d.z
 			case DrawableRect:
+				jy = d.rect.y
+				jz = d.z
 		}
 
-		return iy < jy
+		return iy < jy && iz < jz
 	})
 	for drawable in all_drawables {
 		switch d in drawable {
@@ -285,6 +293,7 @@ game_init :: proc() {
 			speech_bubble = Icon {
 				texture = rl.LoadTexture("assets/Icons/speech_bubble.png"),
 				pos = { 0.0, 0.0 },
+				z = 1,
 			},
 		},
 	}

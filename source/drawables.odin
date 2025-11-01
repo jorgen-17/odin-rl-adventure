@@ -10,6 +10,7 @@ DrawableOrigin :: enum {
 DrawableRect :: struct {
     rect: Rect,
     color: Color,
+    z: int,
 }
 
 DrawableTexture :: struct {
@@ -17,6 +18,7 @@ DrawableTexture :: struct {
     source: Rect,
     pos: Vec2,
     offset: Vec2,
+    z: int,
 }
 
 Drawable :: union {
@@ -57,6 +59,7 @@ draw_texture_rec :: proc (
     texture: Texture,
     source: Rect,
     pos: Vec2,
+    z: int = 0,
     origin: DrawableOrigin = .BottomCenter,
     flip_x: bool = false) {
     offset := get_texture_offset(source, origin, flip_x)
@@ -65,12 +68,14 @@ draw_texture_rec :: proc (
         source = source,
         pos = pos,
         offset = offset,
+        z = z,
     })
 }
 
 draw_texture_pos :: proc (
     tex: Texture,
     pos: Vec2,
+    z: int = 0,
     origin: DrawableOrigin = .BottomCenter,
     flip_x: bool = false) {
     offset := get_texture_offset({pos.x, pos.y, f32(tex.width), f32(tex.height)}, origin, flip_x)
@@ -78,6 +83,7 @@ draw_texture_pos :: proc (
         texture = tex,
         pos = pos,
         offset = offset,
+        z = z,
     })
 }
 
@@ -94,8 +100,6 @@ get_texture_offset :: proc (source: Rect, origin: DrawableOrigin, flip_x: bool =
 
     return offset
 }
-
-draw_texture :: proc { draw_texture_rec, draw_texture_pos }
 
 draw_rect :: proc (rect: Rect, color: Color) {
     add_drawable(DrawableRect {

@@ -30,7 +30,6 @@ animation_update :: proc(a: ^Animation) {
             a.current_frame = 0
         }
     }
-    
 }
 
 animation_draw :: proc(a: Animation, pos: Vec2, flip_x: bool = false) {
@@ -45,12 +44,12 @@ animation_draw :: proc(a: Animation, pos: Vec2, flip_x: bool = false) {
     frame_width := width / f32(a.num_frames)
     flipper : f32 = flip_x ? -1.0 : 1.0
     rect_width := flipper * frame_width
-    source := Rect{
+    source := Rect {
         x = f32(a.current_frame) * frame_width,
         y = 0,
         width = rect_width,
         height = height,
     }
 
-    draw_texture(a.texture, source, pos, a.origin, flip_x)
+    draw_texture_rec(a.texture, source, pos, 0, a.origin, flip_x)
 }
