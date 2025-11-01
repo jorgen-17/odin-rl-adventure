@@ -198,7 +198,7 @@ draw :: proc() {
 				jz = d.z
 		}
 
-		return iy < jy && iz < jz
+		return iy < jy && iz <= jz
 	})
 	for drawable in all_drawables {
 		switch d in drawable {
