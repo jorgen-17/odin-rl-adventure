@@ -6,6 +6,10 @@ import "core:slice"
 import rl "vendor:raylib"
 
 PIXEL_WINDOW_HEIGHT :: 180
+TALK_MAX_DISTANCE :: 32
+TEXT_Z :: 1 // z-value for text to make sure it is drawn above other objects
+FONT_SIZE :: 12
+FONT_COLOR :: rl.BLACK
 
 NPC :: struct {
 	animation: Animation,
@@ -57,32 +61,35 @@ update :: proc() {
 	input: rl.Vector2
 	drawables_reset()
 	
-	if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
-		input.y -= 1
-		g.player.direction = .UP
-	}
-	if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
-		input.y += 1
-		g.player.direction = .DOWN
-	}
-	if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
-		input.x -= 1
-		g.player.direction = .LEFT
-	}
-	if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
-		input.x += 1
-		g.player.direction = .RIGHT
-	}
-
-	input = linalg.normalize0(input)
-	g.player.pos += input * rl.GetFrameTime() * 100
-	g.some_number += 1
-	
 	if rl.IsKeyPressed(.ESCAPE) {
 		g.run = false
 	}
 	if rl.IsKeyPressed(.F2) {
 		g.debug_draw = !g.debug_draw
+	}
+
+	g.some_number += 1
+
+	if !g.player.talking {
+		if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
+			input.y -= 1
+			g.player.direction = .UP
+		}
+		if rl.IsKeyDown(.DOWN) || rl.IsKeyDown(.S) {
+			input.y += 1
+			g.player.direction = .DOWN
+		}
+		if rl.IsKeyDown(.LEFT) || rl.IsKeyDown(.A) {
+			input.x -= 1
+			g.player.direction = .LEFT
+		}
+		if rl.IsKeyDown(.RIGHT) || rl.IsKeyDown(.D) {
+			input.x += 1
+			g.player.direction = .RIGHT
+		}
+
+		input = linalg.normalize0(input)
+		g.player.pos += input * rl.GetFrameTime() * 100
 	}
 
 	if (linalg.length(input) > 0) {
@@ -107,12 +114,25 @@ update :: proc() {
 		g.player.action = .Idle
 	}
 
+	g.player.distance_nearest_npc = max(f32)
+	g.player.nearest_npc = {}
 	npcs_iter := ha_make_iter(&g.npcs)
-	for npc in ha_iter_ptr(&npcs_iter) {
+	for npc, handle_npc in ha_iter_ptr(&npcs_iter) {
+		distance_to_player := linalg.length(npc.pos - g.player.pos)
+		if distance_to_player < g.player.distance_nearest_npc && distance_to_player < TALK_MAX_DISTANCE {
+			g.player.nearest_npc = handle_npc
+			g.player.distance_nearest_npc = distance_to_player
+		}
 		animation_update(&npc.animation)
 	}
-}
 
+	if g.player.distance_nearest_npc < TALK_MAX_DISTANCE {
+		// todo do this only after player has gone through all dialog options
+		if rl.IsKeyPressed(.SPACE) {
+			g.player.talking = !g.player.talking
+		}
+	}
+}
 draw :: proc() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.DARKGREEN)
@@ -157,23 +177,18 @@ draw :: proc() {
 			}
 	}
 
-	TalkMaxDistance :: 32
-	nearest_distance_to_player := max(f32)
-	nearest_npc_handle: Handle(NPC)
-
 	npcs_iter := ha_make_iter(&g.npcs)
-	for npc, handle_npc in ha_iter(&npcs_iter) {
-		distance_to_player := linalg.length(npc.pos - g.player.pos)
-		if distance_to_player < nearest_distance_to_player && distance_to_player < TalkMaxDistance {
-			nearest_npc_handle = handle_npc
-			nearest_distance_to_player = distance_to_player
-		}
+	for npc in ha_iter(&npcs_iter) {
 		animation_draw(npc.animation, npc.pos)
 	}
 
-	if nearest_distance_to_player < TalkMaxDistance {
-		nearest_npc, _ := ha_get(g.npcs, nearest_npc_handle)
-		draw_texture_pos(g.icons.speech_bubble.texture, (nearest_npc.pos + { 0.0, -30.0 }), g.icons.speech_bubble.z)
+	if g.player.distance_nearest_npc < TALK_MAX_DISTANCE {
+		nearest_npc, _ := ha_get(g.npcs, g.player.nearest_npc)
+		if g.player.talking {
+			draw_text("hello", (nearest_npc.pos + { 0.0, -40.0 }), TEXT_Z)
+		} else {
+			draw_texture_pos(g.icons.speech_bubble.texture, (nearest_npc.pos + { 0.0, -30.0 }), g.icons.speech_bubble.z)
+		}
 	}
 
 	all_drawables := drawables_slice()
@@ -188,6 +203,9 @@ draw :: proc() {
 			case DrawableRect:
 				iy = d.rect.y
 				iz = d.z
+			case DrawableText:
+				iy = d.pos.y
+				iz = d.z
 		}
 		switch d in j {
 			case DrawableTexture:
@@ -195,6 +213,9 @@ draw :: proc() {
 				jz = d.z
 			case DrawableRect:
 				jy = d.rect.y
+				jz = d.z
+			case DrawableText:
+				jy = d.pos.y
 				jz = d.z
 		}
 
@@ -221,6 +242,12 @@ draw :: proc() {
 
 				if g.debug_draw {
 					rl.DrawCircleV({d.rect.x, d.rect.y}, 5, rl.YELLOW)
+				}
+			case DrawableText:
+				rl.DrawText(d.text, i32(d.pos.x), i32(d.pos.y), FONT_SIZE, FONT_COLOR)
+
+				if g.debug_draw {
+					rl.DrawCircleV(d.pos, 5, rl.YELLOW)
 				}
 		}
 	}
@@ -271,6 +298,8 @@ game_init :: proc() {
 		player = Player {
 			action = .Idle,
 			direction = .DOWN,
+			nearest_npc = {},
+			distance_nearest_npc = max(f32),
 
 			idle_down = animation_create(
 				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Idle_Base/Idle_Down-Sheet.png"), 4),

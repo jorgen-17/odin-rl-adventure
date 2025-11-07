@@ -21,9 +21,16 @@ DrawableTexture :: struct {
     z: int,
 }
 
+DrawableText :: struct {
+    text: cstring,
+    pos: Vec2,
+    z: int,
+}
+
 Drawable :: union {
     DrawableRect,
     DrawableTexture,
+    DrawableText,
 }
 
 DrawableArray :: [4096]Drawable
@@ -105,5 +112,13 @@ draw_rect :: proc (rect: Rect, color: Color) {
     add_drawable(DrawableRect {
         rect = rect,
         color = color,
+    })
+}
+
+draw_text :: proc (text: cstring, pos: Vec2, z: int) {
+    add_drawable(DrawableText {
+        text = text,
+        pos = pos,
+        z = z,
     })
 }
