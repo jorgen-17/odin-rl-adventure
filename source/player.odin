@@ -3,6 +3,7 @@ package game
 Player_Action :: enum {
     Idle,
     Walking,
+    Melee_Slice,
 }
 
 Player_Direction :: enum {
@@ -25,4 +26,7 @@ Player :: struct {
     walk_down: Animation,	
     walk_up: Animation,	
     walk_right: Animation,	
+    melee_slice_up: Animation,
+    melee_slice_down: Animation,
+    melee_slice_right: Animation,
 }

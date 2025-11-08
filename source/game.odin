@@ -67,10 +67,12 @@ update :: proc() {
 	if rl.IsKeyPressed(.F2) {
 		g.debug_draw = !g.debug_draw
 	}
-
+	if rl.IsKeyDown(.F) || rl.IsMouseButtonPressed(.LEFT) {
+		g.player.action = .Melee_Slice
+	}
 	g.some_number += 1
 
-	if !g.player.talking {
+	if !g.player.talking && g.player.action != .Melee_Slice {
 		if rl.IsKeyDown(.UP) || rl.IsKeyDown(.W) {
 			input.y -= 1
 			g.player.direction = .UP
@@ -92,7 +94,7 @@ update :: proc() {
 		g.player.pos += input * rl.GetFrameTime() * 100
 	}
 
-	if (linalg.length(input) > 0) {
+	if linalg.length(input) > 0 {
 		switch g.player.direction {
 			case .DOWN:
 				animation_update(&g.player.walk_down)
@@ -102,6 +104,21 @@ update :: proc() {
 				animation_update(&g.player.walk_right)
 		}
 		g.player.action = .Walking
+	} else if g.player.action == .Melee_Slice {
+		current_animation: ^Animation
+		switch g.player.direction {
+			case .DOWN:
+				current_animation = &g.player.melee_slice_down
+			case .UP:
+				current_animation = &g.player.melee_slice_up
+			case .RIGHT, .LEFT:
+				current_animation = &g.player.melee_slice_right
+		}
+		// if reached end of animation go back to idle action state
+		if current_animation.current_frame >= current_animation.num_frames - 1{
+			g.player.action = .Idle
+		}
+		animation_update(current_animation)
 	} else {
 		switch g.player.direction {
 			case .DOWN:
@@ -128,7 +145,7 @@ update :: proc() {
 
 	if g.player.distance_nearest_npc < TALK_MAX_DISTANCE {
 		// todo do this only after player has gone through all dialog options
-		if rl.IsKeyPressed(.SPACE) {
+		if rl.IsKeyPressed(.E) {
 			g.player.talking = !g.player.talking
 		}
 	}
@@ -174,6 +191,17 @@ draw :: proc() {
 					animation_draw(g.player.walk_right, g.player.pos)
 				case .LEFT:
 					animation_draw(g.player.walk_right, g.player.pos, true)
+			}
+		case .Melee_Slice:
+			switch g.player.direction {
+				case .DOWN:
+					animation_draw(g.player.melee_slice_down, g.player.pos)
+				case .UP:
+					animation_draw(g.player.melee_slice_up, g.player.pos)
+				case .RIGHT:
+					animation_draw(g.player.melee_slice_right, g.player.pos)
+				case .LEFT:
+					animation_draw(g.player.melee_slice_right, g.player.pos, true)
 			}
 	}
 
@@ -314,6 +342,13 @@ game_init :: proc() {
 				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Up-Sheet.png"), 6),
 			walk_right = animation_create(
 				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Walk_Base/Walk_Side-Sheet.png"), 6),
+
+			melee_slice_down = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Slice_Base/Slice_Down-Sheet.png"), 8),
+			melee_slice_up = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Slice_Base/Slice_Up-Sheet.png"), 8),
+			melee_slice_right = animation_create(
+				rl.LoadTexture("assets/Entities/Characters/Body_A/Animations/Slice_Base/Slice_Side-Sheet.png"), 8),
 		},
 
 		tree_texture = rl.LoadTexture("assets/Environment/Props/Static/Trees/Model_01/Size_05.png"),
